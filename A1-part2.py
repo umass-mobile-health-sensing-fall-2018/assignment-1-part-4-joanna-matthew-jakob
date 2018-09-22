@@ -9,7 +9,7 @@ import numpy as np
 from scipy.ndimage.interpolation import shift
 
 # TODO: Replace the string with your user ID
-user_id = "YOUR_ID_HERE"
+user_id = "Potassium"
 
 # TODO: (optional) Initialize any global variables you may need for your step detection algorithm
 
@@ -146,6 +146,9 @@ def animate(i):
         
         # TODO: add code to plot magnitude on axis 2. Also add markers to the plot at points where steps are detected.
 
+        magnitude = np.sqrt(np.square(xvals) + np.square(yvals) + np.square(zvals))  # square root of sum of squares
+        ax2.plot(tvals, magnitude, label="magnitude")   # plot data
+        ax2.legend(loc='upper right')   # place legend on plot
         # boilerplate code for the layout of graph 2
         ax2.set_title('Real Time Magnitude')
         ax2.set_xlabel('Time (seconds)')
