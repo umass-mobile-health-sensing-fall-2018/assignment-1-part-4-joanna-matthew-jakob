@@ -7,6 +7,7 @@ import matplotlib.animation as animation
 from matplotlib import style
 import numpy as np
 from scipy.ndimage.interpolation import shift
+from scipy.signal import argrelextrema
 
 # TODO: Replace the string with your user ID
 user_id = "Potassium"
@@ -153,7 +154,22 @@ def detectSteps(time,x_in,y_in,z_in):
 
 
 def step_detection(signal):
-    return signal > 10
+    # FILL IN CODE: Step counting
+    maxima = argrelextrema(signal, np.greater)
+    maxima = maxima[0]
+    minima = argrelextrema(signal, np.less)
+    minima = minima[0]
+
+    final_maxima = list()
+
+    j = 0
+    for i in maxima:
+        if(signal[i] < np.mean(signal) or ((signal[minima[j+1]] > np.mean(signal)) and j != (len(signal)-1))):
+            j = j + 1
+        else:
+            final_maxima.append(i)
+
+    return np.asarray(final_maxima)
 
 
 def animate(i):
@@ -189,11 +205,13 @@ def animate(i):
         ax2.set_ylabel('Acceleration (m/s^2)')
         ax2.set_ylim(0,40)
 
-        steps = np.nonzero(stepindices)
-        steps_times = np.take(tvals, steps)
-        steps_vals = np.take(magvals, steps)
+        steps_times = np.take(tvals, stepindices)
+        steps_vals = np.take(magvals, stepindices)
         ax3.plot(tvals, static_mags, label="magnitude", linewidth=2)
         ax3.plot(steps_times, steps_vals, marker="o")
+        ax3.set_title('Magnitude Intervals With Steps')
+        ax3.set_xlabel('Time (seconds)')
+        ax3.set_ylabel('Acceleration (m/s^2)')
 
     except KeyboardInterrupt:
         quit()
@@ -233,14 +251,16 @@ try:
     
     
     #Setup the matplotlib plotting canvas
+    grid = plt.GridSpec(2, 2, wspace=0.4, hspace=0.3)
+
     style.use('fivethirtyeight')
     
-    fig = plt.figure(figsize=(12, 7))
-    ax1 = fig.add_subplot(2,2,1)
-    ax2 = fig.add_subplot(2,2,2)
+    fig = plt.figure(figsize=(12, 6))
+    ax1 = fig.add_subplot(grid[0,0])
+    ax2 = fig.add_subplot(grid[0,1])
 
     # for the static window
-    ax3 = fig.add_subplot(2, 2, 3)
+    ax3 = fig.add_subplot(grid[1,0:])
     
     # Point to the animation function above, show the plot canvas
     ani = animation.FuncAnimation(fig, animate, interval=20)
