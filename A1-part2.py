@@ -13,6 +13,7 @@ from scipy.signal import argrelextrema
 user_id = "Potassium"
 window_counter = 250
 static_mags = np.zeros(250)
+static_indices = np.zeros(250)
 # TODO: (optional) Initialize any global variables you may need for your step detection algorithm
 #################   Begin Server Connection Code  ####################
 
@@ -139,7 +140,7 @@ def detectSteps(time,x_in,y_in,z_in):
     static_mags = magvals
 
     # FILTER SIGNAL
-    signal = magvals  # set signal equal to the calculated magnitude signal we plotted for part 1
+    signal = static_mags  # set signal equal to the calculated magnitude signal we plotted for part 1
     order = 5
     fs = 50.0  # sample rate, Hz
     cutoff = 2.2  # cutoff frequency, Hz
@@ -149,7 +150,18 @@ def detectSteps(time,x_in,y_in,z_in):
     filtered_signal = filtfilt(b, a, signal)
 
     # RUN STEP DETECTION
-    stepindices = step_detection(filtered_signal)
+    step_indices = step_detection(filtered_signal)
+
+    steps_times = np.take(tvals, step_indices)
+    steps_vals = np.take(magvals, step_indices)
+
+    ax3.clear()
+    ax3.plot(tvals, static_mags, label="magnitude", linewidth=2)
+    ax3.scatter(steps_times, steps_vals, label="steps", marker="o", color="r")
+    ax3.set_title('Magnitude Intervals With Steps')
+    ax3.set_xlabel('Time (seconds)')
+    ax3.set_ylabel('Acceleration (m/s^2)')
+
     return
 
 
@@ -204,14 +216,6 @@ def animate(i):
         ax2.set_xlabel('Time (seconds)')
         ax2.set_ylabel('Acceleration (m/s^2)')
         ax2.set_ylim(0,40)
-
-        steps_times = np.take(tvals, stepindices)
-        steps_vals = np.take(magvals, stepindices)
-        ax3.plot(tvals, static_mags, label="magnitude", linewidth=2)
-        ax3.plot(steps_times, steps_vals, marker="o")
-        ax3.set_title('Magnitude Intervals With Steps')
-        ax3.set_xlabel('Time (seconds)')
-        ax3.set_ylabel('Acceleration (m/s^2)')
 
     except KeyboardInterrupt:
         quit()
