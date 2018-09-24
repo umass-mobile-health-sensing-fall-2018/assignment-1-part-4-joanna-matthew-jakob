@@ -10,9 +10,9 @@ from scipy.ndimage.interpolation import shift
 
 # TODO: Replace the string with your user ID
 user_id = "Potassium"
-
+window_counter = 250
+static_mags = np.zeros(250)
 # TODO: (optional) Initialize any global variables you may need for your step detection algorithm
-
 #################   Begin Server Connection Code  ####################
 
 def authenticate(sock):
@@ -60,7 +60,7 @@ def recv_data():
     global receive_socket
     global t, x, y, z   # global variables to hold incoming timestamp, x, y and z values
     global tvals, xvals, yvals, zvals  # global value buffers to hold a stream of timestamp, x, y and z values. Will be used to plot an interval of data
-    
+
     previous_json = ''
 
     while True:
@@ -91,6 +91,10 @@ def recv_data():
                     
                     zvals = shift(zvals, 1, cval=0)
                     zvals[0] = z
+
+                    #Shift old steps backwards
+                    # global stepindices
+                    # stepindices = shift(stepindices, 1, cval=False)
                     
             sys.stdout.flush()
             detectSteps(t,x,y,z)
@@ -119,10 +123,38 @@ def detectSteps(time,x_in,y_in,z_in):
     if you like. Remember to use the global keyword if you would like to 
     access global variables such as counters or buffers. 
     """
-    
+    global window_counter
+    # input variables for this method seem to be useless/optional ???
+    if window_counter != 0:  # wait until entire new window's worth of data has been acquired
+        window_counter -= 1
+        return
+
+    window_counter = 250  # reset the window counter variable
     # TODO: Step detection algorithm
-    
+    from scipy.signal import butter, filtfilt  # imports for butterworth lowpass filter
+    global stepindices
+    global magvals
+    global static_mags
+    static_mags = magvals
+
+    # FILTER SIGNAL
+    signal = magvals  # set signal equal to the calculated magnitude signal we plotted for part 1
+    order = 5
+    fs = 50.0  # sample rate, Hz
+    cutoff = 2.2  # cutoff frequency, Hz
+    nyq = 0.5 * fs
+    normal_cutoff = cutoff / nyq
+    b, a = butter(order, normal_cutoff, btype='low', analog=False)
+    filtered_signal = filtfilt(b, a, signal)
+
+    # RUN STEP DETECTION
+    stepindices = step_detection(filtered_signal)
     return
+
+
+def step_detection(signal):
+    return signal > 10
+
 
 def animate(i):
     """
@@ -145,15 +177,23 @@ def animate(i):
         ax1.set_ylim(-40,40)
         
         # TODO: add code to plot magnitude on axis 2. Also add markers to the plot at points where steps are detected.
+        global magvals
+        global stepindices
+        magvals = np.sqrt(np.square(xvals) + np.square(yvals) + np.square(zvals))  # square root of sum of squares
+        ax2.plot(tvals, magvals, label="magnitude", linewidth=2)   # plot data
 
-        magnitude = np.sqrt(np.square(xvals) + np.square(yvals) + np.square(zvals))  # square root of sum of squares
-        ax2.plot(tvals, magnitude, label="magnitude")   # plot data
         ax2.legend(loc='upper right')   # place legend on plot
         # boilerplate code for the layout of graph 2
         ax2.set_title('Real Time Magnitude')
         ax2.set_xlabel('Time (seconds)')
         ax2.set_ylabel('Acceleration (m/s^2)')
         ax2.set_ylim(0,40)
+
+        steps = np.nonzero(stepindices)
+        steps_times = np.take(tvals, steps)
+        steps_vals = np.take(magvals, steps)
+        ax3.plot(tvals, static_mags, label="magnitude", linewidth=2)
+        ax3.plot(steps_times, steps_vals, marker="o")
 
     except KeyboardInterrupt:
         quit()
@@ -195,9 +235,12 @@ try:
     #Setup the matplotlib plotting canvas
     style.use('fivethirtyeight')
     
-    fig = plt.figure()
-    ax1 = fig.add_subplot(1,2,1)
-    ax2 = fig.add_subplot(1,2,2)
+    fig = plt.figure(figsize=(12, 7))
+    ax1 = fig.add_subplot(2,2,1)
+    ax2 = fig.add_subplot(2,2,2)
+
+    # for the static window
+    ax3 = fig.add_subplot(2, 2, 3)
     
     # Point to the animation function above, show the plot canvas
     ani = animation.FuncAnimation(fig, animate, interval=20)
