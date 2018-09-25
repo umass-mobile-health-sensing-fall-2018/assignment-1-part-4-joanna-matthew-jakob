@@ -137,7 +137,7 @@ def detectSteps(time,x_in,y_in,z_in):
     global stepindices
     global magvals
     global static_mags
-    static_mags = magvals
+    static_mags = np.array(magvals) # have to reinitialize array otherwise the pointers for static_mags and magvals become the same
 
     # FILTER SIGNAL
     signal = static_mags  # set signal equal to the calculated magnitude signal we plotted for part 1
@@ -150,14 +150,15 @@ def detectSteps(time,x_in,y_in,z_in):
     filtered_signal = filtfilt(b, a, signal)
 
     # RUN STEP DETECTION
-    step_indices = step_detection(filtered_signal)
+    step_indices = list(map(int, step_detection(filtered_signal)))  # get indices of steps in range 0-249
 
-    steps_times = np.take(tvals, step_indices)
-    steps_vals = np.take(magvals, step_indices)
+    steps_times = np.take(tvals, step_indices)  # get x values for plotting
+    steps_vals = np.take(filtered_signal, step_indices)  # get y values for plotting
 
     ax3.clear()
-    ax3.plot(tvals, static_mags, label="magnitude", linewidth=2)
+    ax3.plot(tvals, filtered_signal, label="filtered signal", linewidth=2)
     ax3.scatter(steps_times, steps_vals, label="steps", marker="o", color="r")
+    ax3.legend(loc="upper right")
     ax3.set_title('Magnitude Intervals With Steps')
     ax3.set_xlabel('Time (seconds)')
     ax3.set_ylabel('Acceleration (m/s^2)')
@@ -166,17 +167,19 @@ def detectSteps(time,x_in,y_in,z_in):
 
 
 def step_detection(signal):
-    # FILL IN CODE: Step counting
+    # returns a list of indices corresponding to steps (in range of 0-249)
     maxima = argrelextrema(signal, np.greater)
     maxima = maxima[0]
     minima = argrelextrema(signal, np.less)
     minima = minima[0]
-
     final_maxima = list()
 
+    mean = np.mean(signal)
+
+    threshold = 1  # steps should vary from the mean with a magnitude of at least +1
     j = 0
     for i in maxima:
-        if(signal[i] < np.mean(signal) or ((signal[minima[j+1]] > np.mean(signal)) and j != (len(signal)-1))):
+        if signal[i] < mean + threshold or ((signal[minima[j+1]] > mean) and j != (len(signal)-1)):
             j = j + 1
         else:
             final_maxima.append(i)
