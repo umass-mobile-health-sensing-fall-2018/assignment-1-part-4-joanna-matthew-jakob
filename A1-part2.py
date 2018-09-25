@@ -162,6 +162,7 @@ def detectSteps(time,x_in,y_in,z_in):
     ax3.set_title('Magnitude Intervals With Steps')
     ax3.set_xlabel('Time (seconds)')
     ax3.set_ylabel('Acceleration (m/s^2)')
+    ax3.set_ylim(-40,40)
 
     return
 
