@@ -173,19 +173,34 @@ def step_detection(signal):
     maxima = maxima[0]
     minima = argrelextrema(signal, np.less)
     minima = minima[0]
-    final_maxima = list()
+    final_steps = list()
 
-    mean = np.mean(signal)
+    # mean = np.mean(signal)
+    mean = 9.81
 
     threshold = 1  # steps should vary from the mean with a magnitude of at least +1
     j = 0
-    for i in maxima:
-        if signal[i] < mean + threshold or ((signal[minima[j+1]] > mean) and j != (len(signal)-1)):
-            j = j + 1
-        else:
-            final_maxima.append(i)
 
-    return np.asarray(final_maxima)
+    flag = "minima"
+
+    if flag == "maxima":
+        for i in maxima:
+            if signal[i] < mean + threshold or ((signal[minima[j+1]] > mean) and j != (len(signal)-1)):
+                j = j + 1
+            else:
+                final_steps.append(i)
+
+    elif flag == "minima":
+        for i in minima:
+            if signal[i] > mean - threshold or ((signal[maxima[j+1]] < mean) and j!= (len(signal)-1)):
+                j = j + 1
+            else:
+                final_steps.append(i)
+    else:
+        raise Exception("invalid flag for step detection")
+        
+
+    return np.asarray(final_steps)
 
 
 def animate(i):
