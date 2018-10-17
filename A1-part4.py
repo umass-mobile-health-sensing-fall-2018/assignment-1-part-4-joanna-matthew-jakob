@@ -206,7 +206,7 @@ def animate(i):
         ax2.clear()
         
         # plotting live values of acceleration in the x, y and z directions
-        ax1.plot(tvals, vals, label="x")
+        ax1.plot(tvals, vals, label="value")
         ax1.legend(loc='upper right')
         ax1.set_title('Real Time Acceleration')
         ax1.set_xlabel('Time (seconds)')
