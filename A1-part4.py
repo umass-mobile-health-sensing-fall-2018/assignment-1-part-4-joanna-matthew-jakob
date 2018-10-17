@@ -60,8 +60,8 @@ def recv_data():
     Continuously receives data from the server and calls detectSteps
     """
     global receive_socket
-    global t, x, y, z   # global variables to hold incoming timestamp, x, y and z values
-    global tvals, xvals, yvals, zvals  # global value buffers to hold a stream of timestamp, x, y and z values. Will be used to plot an interval of data
+    global t, value   # global variables to hold incoming timestamp and values
+    global tvals, vals  # global value buffers to hold a stream of timestamp and values. Will be used to plot an interval of data
 
     previous_json = ''
 
@@ -78,28 +78,20 @@ def recv_data():
                     continue
                 previous_json = '' # reset if all were successful
                 sensor_type = data['sensor_type']
-                if (sensor_type == u"SENSOR_ACCEL"):
+                if (sensor_type == u"SENSOR_PPG"):
                     t=data['data']['t']
-                    x=data['data']['x']
-                    y=data['data']['y']
-                    z=data['data']['z']
+                    value=data['data']['value']
                     
                     #Shift new data into the numpy plot buffers 
-                    xvals = shift(xvals, 1, cval=0)
-                    xvals[0] = x
-                    
-                    yvals = shift(yvals, 1, cval=0)
-                    yvals[0] = y
-                    
-                    zvals = shift(zvals, 1, cval=0)
-                    zvals[0] = z
+                    vals = shift(vals, 1, cval=0)
+                    vals[0] = value
 
                     #Shift old steps backwards
                     # global stepindices
                     # stepindices = shift(stepindices, 1, cval=False)
                     
             sys.stdout.flush()
-            detectSteps(t,x,y,z)
+            detectSteps(t,value)
         except KeyboardInterrupt: 
             # occurs when the user presses Ctrl-C
             print("User Interrupt. Quitting...")
@@ -115,7 +107,7 @@ def recv_data():
 
 #################   End Server Connection Code  ####################
 
-def detectSteps(time,x_in,y_in,z_in):
+def detectSteps(time,val_in):
     """
     Accelerometer-based step detection algorithm.
     
@@ -207,7 +199,7 @@ def animate(i):
     """
     Helper function that animates the canvas
     """
-    global tvals, xvals, yvals, zvals # global value buffers that we are appending to in recv_data
+    global tvals, vals # global value buffers that we are appending to in recv_data
     
     try:
         ax1.clear()
@@ -226,7 +218,7 @@ def animate(i):
         # TODO: add code to plot magnitude on axis 2. Also add markers to the plot at points where steps are detected.
         global magvals
         global stepindices
-        magvals = np.sqrt(np.square(xvals) + np.square(yvals) + np.square(zvals))  # square root of sum of squares
+        magvals = vals  # square root of sum of squares
         ax2.plot(tvals, magvals, label="magnitude", linewidth=2)   # plot data
 
         ax2.legend(loc='upper right')   # place legend on plot
