@@ -249,15 +249,11 @@ try:
     previous_json = ''
 
     t = 0
-    x = 0
-    y = 0
-    z = 0
+    value = 0
     
     # numpy array buffers used for visualization
     tvals = np.linspace(0,10,num=250)
-    xvals = np.zeros(250)
-    yvals = np.zeros(250)
-    zvals = np.zeros(250)
+    vals = np.zeros(250)
     magvals = np.zeros(250)
     stepindices = np.zeros(250,dtype='int')
     
