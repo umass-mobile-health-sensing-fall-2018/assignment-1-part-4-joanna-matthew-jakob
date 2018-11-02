@@ -91,7 +91,7 @@ def recv_data():
                     # stepindices = shift(stepindices, 1, cval=False)
                     
             sys.stdout.flush()
-            detectSteps(t,value)
+            detectSteps(t,value,value,value)
         except KeyboardInterrupt: 
             # occurs when the user presses Ctrl-C
             print("User Interrupt. Quitting...")
@@ -107,7 +107,7 @@ def recv_data():
 
 #################   End Server Connection Code  ####################
 
-def detectSteps(time,val_in):
+def detectSteps(time,x_in,y_in,z_in):
     """
     Accelerometer-based step detection algorithm.
     
@@ -125,21 +125,25 @@ def detectSteps(time,val_in):
 
     window_counter = 250  # reset the window counter variable
     # TODO: Step detection algorithm
-    from scipy.signal import butter, filtfilt  # imports for butterworth lowpass filter
     global stepindices
     global magvals
     global static_mags
     static_mags = np.array(magvals) # have to reinitialize array otherwise the pointers for static_mags and magvals become the same
 
-    # FILTER SIGNAL
-    signal = static_mags  # set signal equal to the calculated magnitude signal we plotted for part 1
+    # Implement high-pass filter
+    from scipy.signal import butter, filtfilt
+    # Filter requirements.
     order = 5
     fs = 50.0  # sample rate, Hz
-    cutoff = 2.2  # cutoff frequency, Hz
+    cutoff = 3  # desired cutoff frequency of the filter, Hz. MODIFY AS APPROPROATE
+
+    # Create the filter.
     nyq = 0.5 * fs
     normal_cutoff = cutoff / nyq
-    b, a = butter(order, normal_cutoff, btype='low', analog=False)
-    filtered_signal = filtfilt(b, a, signal)
+    b, a = butter(order, normal_cutoff, btype='highpass', analog=False)
+
+    # Apply the butterworth filter on the signal
+    filtered_signal = filtfilt(b, a, static_mags)
 
     # RUN STEP DETECTION
     step_indices = list(map(int, step_detection(filtered_signal)))  # get indices of steps in range 0-249
@@ -154,45 +158,29 @@ def detectSteps(time,val_in):
     ax3.set_title('Magnitude Intervals With Steps')
     ax3.set_xlabel('Time (seconds)')
     ax3.set_ylabel('Acceleration (m/s^2)')
-    ax3.set_ylim(0,40)
+    ax3.set_ylim(-2,2)
 
     return
 
 
 def step_detection(signal):
-    # returns a list of indices corresponding to steps (in range of 0-249)
+    # returns a list of indices corresponding to steps (in range of 0-249)]
     maxima = argrelextrema(signal, np.greater)
     maxima = maxima[0]
     minima = argrelextrema(signal, np.less)
     minima = minima[0]
-    final_steps = list()
-
-    # mean = np.mean(signal)
-    mean = 9.81
-
-    threshold = 1  # steps should vary from the mean with a magnitude of at least +1
+    peaks = list()
     j = 0
+    
+    for i in minima:
+        if signal[i] > -0.1 or ((signal[maxima[j+1]] < 0) and j!= (len(signal)-1)):
+            j = j + 1
+        else:
+            peaks.append(i)
+    
+    print("Heart Rate: ", len(peaks)*6)
 
-    flag = "minima"
-
-    if flag == "maxima":
-        for i in maxima:
-            if signal[i] < mean + threshold or ((signal[minima[j+1]] > mean) and j != (len(signal)-1)):
-                j = j + 1
-            else:
-                final_steps.append(i)
-
-    elif flag == "minima":
-        for i in minima:
-            if signal[i] > mean - threshold or ((signal[maxima[j+1]] < mean) and j!= (len(signal)-1)):
-                j = j + 1
-            else:
-                final_steps.append(i)
-    else:
-        raise Exception("invalid flag for step detection")
-        
-
-    return np.asarray(final_steps)
+    return np.asarray(peaks)
 
 
 def animate(i):
@@ -206,25 +194,37 @@ def animate(i):
         ax2.clear()
         
         # plotting live values of acceleration in the x, y and z directions
-        ax1.plot(tvals, vals, label="value")
-        ax1.legend(loc='upper right')
-        ax1.set_title('Real Time Acceleration')
+        ax1.plot(tvals, vals)
+        ax1.set_title('Real Time Raw Signal')
         ax1.set_xlabel('Time (seconds)')
-        ax1.set_ylabel('Acceleration (m/s^2)')
-        ax1.set_ylim(-40,40)
+        ax1.set_ylim(230,260)
         
         # TODO: add code to plot magnitude on axis 2. Also add markers to the plot at points where steps are detected.
         global magvals
         global stepindices
-        magvals = vals  # square root of sum of squares
-        ax2.plot(tvals, magvals, label="magnitude", linewidth=2)   # plot data
 
-        ax2.legend(loc='upper right')   # place legend on plot
+        # Implement high-pass filter
+        from scipy.signal import butter, filtfilt
+        # Filter requirements.
+        order = 5
+        fs = 50.0  # sample rate, Hz
+        cutoff = 3  # desired cutoff frequency of the filter, Hz. MODIFY AS APPROPROATE
+
+        # Create the filter.
+        nyq = 0.5 * fs
+        normal_cutoff = cutoff / nyq
+        b, a = butter(order, normal_cutoff, btype='highpass', analog=False)
+
+        # Apply the butterworth filter on the signal
+        magvals = filtfilt(b, a, vals)
+        magvals = magvals - np.mean(magvals)
+
+        ax2.plot(tvals, magvals, linewidth=2)   # plot data
+        
         # boilerplate code for the layout of graph 2
-        ax2.set_title('Real Time Magnitude')
+        ax2.set_title('Real Time Filtered Signal')
         ax2.set_xlabel('Time (seconds)')
-        ax2.set_ylabel('Acceleration (m/s^2)')
-        ax2.set_ylim(0,40)
+        ax2.set_ylim(-2,2)
 
     except KeyboardInterrupt:
         quit()
